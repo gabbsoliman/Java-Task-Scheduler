@@ -1,28 +1,35 @@
 # Task Scheduler: Insertion Sort Algorithm
 
-A Java Swing desktop application whose main purpose is to **demonstrate and implement the Insertion Sort algorithm**. Tasks are added to a scheduler and can then be sorted by deadline, priority, or task ID, with every sort performed by a hand-written insertion sort (no `Collections.sort` or `Comparator`).
+A Java Swing desktop application whose main purpose is to **demonstrate and implement the Insertion Sort algorithm**. Tasks are added to a scheduler and can then be sorted by status, deadline, priority, or task ID. Every sort uses a hand-written insertion sort (no `Collections.sort` or `Comparator`).
 
 ## Features
 
 - Add, edit, search, and delete tasks (name, description, deadline, priority)
+- Edit a task with the **Edit** button or by double-clicking its row
 - Search by task name (partial match) or by ID (e.g. `#42`); the matching row is selected in the table
-- Mark tasks as completed with a checkbox and delete all completed tasks at once (with a confirmation prompt)
-- **Clear** button resets the input form and cancels an edit in progress
-- Rows are color-coded by priority (red = High, yellow = Medium, green = Low); completed tasks are greyed out and overdue deadlines are shown in red
-- Live counter at the bottom showing total, pending, and completed tasks
+- Mark tasks as completed with a checkbox, or use the **select-all checkbox** in the table header to mark or unmark every task at once
+- **Delete Checked** removes all completed tasks at once (with a confirmation prompt)
+- **Clear** resets the input form; while editing it becomes **Cancel**
+- Deadline input:
+  - typed with a `##/##/##` mask and validated in `MM/DD/YY` format, including leap years
+  - or picked from a **calendar popup** (with *Today* / *Tomorrow* shortcuts)
+  - **past dates are not allowed**; a live hint under the field shows the full date and how many days are left
+- Priority and status shown as colored badges (red = High, yellow = Medium, green = Low); completed tasks are greyed out and struck through; deadlines are tagged **Overdue** (red), **Today**, or **Tomorrow**
+- Summary cards at the top: **Total**, **Pending**, **Completed**, and **Overdue** tasks
 - Up to 90 tasks at a time (random unique Task IDs from #10 to #99)
 - Sort the task list with Insertion Sort by:
+  - **Status**: Pending → Completed (default)
   - **Deadline**: earliest to latest
   - **Priority**: High → Medium → Low
-  - **Task ID**: lowest to highest (#10 → #99)
+  - **INSERTION SORT ALGORITHM** (Task ID): lowest to highest (#10 → #99)
 - Stable sorting: tasks that tie are kept in the order they were added
-- Deadline input uses a `##/##/##` mask and is validated in `MM/DD/YY` format, including leap years
-- Tasks are saved in a local SQLite database (`task_scheduler.db`), so they persist between runs
-- The table is re-sorted with the selected option after every add, edit, delete, and on startup (default: Deadline)
+- Tasks are saved in a local SQLite database (`tasks.db`), so they persist between runs
+- The table is re-sorted with the selected option after every add, edit, checkbox change, and delete, and on startup
+- The input form scrolls on small screens, so nothing gets cut off
 
 ## The Insertion Sort Algorithm
 
-Insertion Sort builds the sorted list one item at a time. For each task, starting at the second one, it is compared with the tasks before it. Larger tasks are shifted one position to the right, and the task is inserted into the gap.
+Insertion Sort builds the sorted list one item at a time. Starting from the second task, each task is compared with the tasks before it. Larger tasks are shifted one position to the right, and the task is inserted into the gap.
 
 From [InsertionSort.java](src/InsertionSort.java):
 
@@ -42,6 +49,15 @@ public static void sortByTaskID(ArrayList<Task> list) {
 }
 ```
 
+The other sorts use the same loop with a different comparison:
+
+| Sort option              | Order                  | Tie-breaker                        |
+|--------------------------|------------------------|------------------------------------|
+| Status                   | Pending → Completed    | Earliest deadline, then add order  |
+| Deadline                 | Earliest → latest      | Add order                          |
+| Priority                 | High → Medium → Low    | Add order                          |
+| INSERTION SORT ALGORITHM | Task ID #10 → #99      | (IDs are unique)                   |
+
 | Case    | Time complexity | Notes                          |
 |---------|-----------------|--------------------------------|
 | Best    | O(n)            | List is already sorted         |
@@ -53,10 +69,13 @@ Insertion Sort is **stable**, and it works well for small lists like this one (t
 
 ## Database
 
-Tasks are stored in a local **SQLite** database through JDBC ([TaskDatabase.java](src/TaskDatabase.java)). The `tasks` table is created on first launch. Where `task_scheduler.db` is created depends on how you run the app:
+Tasks are stored in a local **SQLite** database through JDBC ([TaskDatabase.java](src/TaskDatabase.java)). The `tasks` table is created on first launch. The database file is `tasks.db`, and where it is created depends on how you run the app:
 
 - **From the jar** (`Java Task Scheduler.jar`): in a `src` folder next to the jar (created if missing).
-- **From compiled classes** (run inside `src`): in the current folder.
+- **From source in the project folder** (e.g. VS Code): `src/tasks.db`.
+- **From source inside `src`**: `tasks.db` in that folder.
+
+In this project all three are the same file, `src/tasks.db`, so the jar and the source code share the same tasks.
 
 | Column        | Type                  | Description                                              |
 |---------------|-----------------------|----------------------------------------------------------|
@@ -71,64 +90,67 @@ Tasks are stored in a local **SQLite** database through JDBC ([TaskDatabase.java
 How the database is used:
 
 - **Load**: on startup, all tasks are read in `add_order` order.
-- **Add / Edit / Delete / Checkbox**: each action is written to the database immediately (`INSERT`, `UPDATE`, `DELETE` with prepared statements).
-- **Sorting**: Insertion Sort runs on the in-memory list only; the database is not rewritten. Tasks are always reloaded by `add_order` (the stable tie-breaker), then sorted again by the selected option (Deadline by default) at startup.
-- **Connection**: opened when the app starts and closed when the window is closed.
-- **Failure**: if the database cannot be opened, the app still runs but tasks will not be saved (an error is printed to the console).
-- **Reset**: delete `task_scheduler.db` to clear all saved tasks.
+- **Add / Edit / Delete / Checkbox / Select all**: each action is written to the database immediately (`INSERT`, `UPDATE`, `DELETE` with prepared statements).
+- **Sorting**: Insertion Sort runs on the in-memory list only; the database is not rewritten. Tasks are always reloaded by `add_order` (the stable tie-breaker), then sorted again by the selected option at startup.
+- **Driver**: the SQLite driver is loaded automatically from `src/lib`, so no classpath setup is needed. The jar has the driver built in.
+- **Connection**: opened when the app starts and closed when the app exits.
+- **Failure**: if the database cannot be opened, the app still runs, shows a **Database Error** message, and tasks are not saved.
+- **Viewing**: `tasks.db` is a standard SQLite file and can be opened in any SQLite viewer (e.g. the VS Code *Database Client* extension).
+- **Reset**: delete `tasks.db` to clear all saved tasks; an empty one is created on the next launch.
 
 ## Project Structure
 
 Source files are in the [src/](src/) folder.
 
-| File                                         | Description                                                         |
-|----------------------------------------------|---------------------------------------------------------------------|
-| [Main.java](src/Main.java)                       | Entry point; sets the Nimbus look and feel and launches the GUI     |
-| [TaskSchedulerGUI.java](src/TaskSchedulerGUI.java) | Swing user interface (table, input form, search, sort dropdown, counter) |
-| [TaskManager.java](src/TaskManager.java)         | Task logic: add, edit, delete, search, date validation, sort calls; keeps the database in sync |
-| [InsertionSort.java](src/InsertionSort.java)     | **The Insertion Sort implementations**                              |
-| [Task.java](src/Task.java)                       | Task model (ID, name, description, deadline, priority, status)      |
-| [TaskDatabase.java](src/TaskDatabase.java)       | **SQLite persistence through JDBC** (load, insert, update, delete)  |
-| `src/lib/sqlite-jdbc-3.36.0.3.jar`           | SQLite JDBC driver                                                  |
-| `src/task_scheduler.db`                      | SQLite database file (created automatically)                        |
-| `Java Task Scheduler.jar`                    | Ready-to-run executable jar (SQLite driver bundled inside)          |
+| File                                               | Description                                                         |
+|----------------------------------------------------|---------------------------------------------------------------------|
+| [Main.java](src/Main.java)                         | Entry point; applies the system look and feel, opens the database, and launches the GUI |
+| [TaskSchedulerGUI.java](src/TaskSchedulerGUI.java) | Swing user interface (summary cards, input form, table, search, sort, select-all) |
+| [TaskManager.java](src/TaskManager.java)           | Task logic: add, edit, delete, search, select all, date validation, sort calls; keeps the database in sync |
+| [InsertionSort.java](src/InsertionSort.java)       | **The Insertion Sort implementations**                              |
+| [Task.java](src/Task.java)                         | Task model (ID, name, description, deadline, priority, status)      |
+| [TaskDatabase.java](src/TaskDatabase.java)         | **SQLite persistence through JDBC** (load, insert, update, delete)  |
+| [DatePickerPopup.java](src/DatePickerPopup.java)   | Calendar popup for picking a deadline (past days disabled)          |
+| [Theme.java](src/Theme.java)                       | Shared colors, fonts, and custom-drawn components (rounded cards, buttons, logo) |
+| `src/lib/sqlite-jdbc-3.36.0.3.jar`                 | SQLite JDBC driver                                                  |
+| `src/tasks.db`                            | SQLite database file (created automatically)                        |
+| `Java Task Scheduler.jar`                          | Ready-to-run executable jar (SQLite driver bundled inside)          |
 
 ## Requirements
 
-- Java Development Kit (JDK) 8 or later (a JRE is enough to run the jar)
-- To compile from source, the SQLite JDBC jar in `src/lib` must be on the classpath, as shown below. No separate database install is needed.
+- **Java 17 or later**. A JDK is needed to compile; a JRE is enough to run the jar.
+- No separate database install is needed.
 
 ## How to Run
 
-**Option 1: run the jar** (no compiling needed; double-click it or use):
+**Option 1: run the jar** (no compiling needed). Double-click `Java Task Scheduler.jar`, or use:
 ```bash
 java -jar "Java Task Scheduler.jar"
 ```
 
-**Option 2: compile from source.** From the project folder, go into `src` first:
+**Option 2: compile from source.** From the project folder (the SQLite driver in `src/lib` is found automatically):
 
 **Windows**
 ```bash
-cd src
-javac -cp ".;lib/sqlite-jdbc-3.36.0.3.jar" *.java
-java -cp ".;lib/sqlite-jdbc-3.36.0.3.jar" Main
+javac -d out src\*.java
+java -cp out Main
 ```
 
 **macOS / Linux**
 ```bash
-cd src
-javac -cp ".:lib/sqlite-jdbc-3.36.0.3.jar" *.java
-java -cp ".:lib/sqlite-jdbc-3.36.0.3.jar" Main
+javac -d out src/*.java
+java -cp out Main
 ```
 
 ## How to Use
 
-1. Enter a task name, description, deadline (`MM/DD/YY`, e.g. `12/25/26`), and priority, then click **Add**.
+1. Enter a task name, description, deadline (`MM/DD/YY`, e.g. `12/25/26`, or pick it with the calendar button), and priority, then click **Add Task**.
 2. Add several tasks in no particular order.
-3. Use the **Sort By** dropdown at the bottom to choose *Deadline*, *Priority*, or *INSERTION SORT ALGORITHM* (sort by Task ID). The table is re-sorted using Insertion Sort.
+3. Use the **Sort by** dropdown (top right of the table) to choose *Status*, *Deadline*, *Priority*, or *INSERTION SORT ALGORITHM* (sort by Task ID). The table is re-sorted using Insertion Sort.
 4. Use **Search** to find a task by name or ID (e.g. `#42`).
-5. To change a task, select its row and click **Edit**; the form fills in and **Add** becomes **Save**. Click **Clear** to cancel.
-6. Tick the checkbox to mark a task completed, then click **Delete** to remove all checked tasks (you will be asked to confirm).
+5. To change a task, double-click its row (or select it and click **Edit**). The form fills in and **Add Task** becomes **Save Changes**. Click **Cancel** to stop editing.
+6. Tick a task's checkbox to mark it completed, or tick the checkbox in the table header to mark **all** tasks (tick it again to unmark all).
+7. Click **Delete Checked** to remove all completed tasks (you will be asked to confirm).
 
 ## Author
 
