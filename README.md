@@ -154,4 +154,4 @@ java -cp out Main
 
 ## Author
 
-GEMS #3
+GEMS #3 (Data Structures and Algorithms)
