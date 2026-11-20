@@ -95,7 +95,8 @@ Source files are in the [src/](src/) folder.
 
 ## Requirements
 
-- Java Development Kit (JDK) 8 or later (a JRE is enough to run the jar)
+- **Java 25 or later** to run `Java Task Scheduler.jar` (it was compiled with JDK 25). On an older Java, the jar fails with *"A Java Exception has occurred"*.
+- **JDK 8 or later** to compile and run from source.
 - To compile from source, the SQLite JDBC jar in `src/lib` must be on the classpath, as shown below. No separate database install is needed.
 
 ## How to Run
