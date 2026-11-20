@@ -2,7 +2,7 @@
 
 A Java Swing desktop application whose main purpose is to **demonstrate and implement the Insertion Sort algorithm**. Tasks are added to a scheduler and can then be sorted by status, deadline, priority, or task ID. Every sort uses a hand-written insertion sort (no `Collections.sort` or `Comparator`).
 
-![Task Scheduler main window](img/sample.png)
+![Task Scheduler main window](main/img/sample.png)
 
 ## Features
 
